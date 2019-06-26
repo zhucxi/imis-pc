@@ -20,13 +20,25 @@
         },
       methods:{
         login: function () {
-          const data={'username':this.username,'password':this.password}
-          this.axios.post('/testController/hello',this.$qs.stringify(data))
-          .then(function (res) {
+          const data={'username':this.username,'password':this.password};
+          this.axios({
+            method:'post',
+            url:'/testController/hello',
+            data:this.$qs.stringify(data),
+            /*headers:{
+              'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'
+            }*/
+          }).then(function (res) {
             console.log(res)
           }).catch(function (res) {
             console.log(res)
           })
+         /* this.axios.post('/testController/hello',this.$qs.stringify(data)
+          ).then(function (res) {
+            console.log(res)
+          }).catch(function (res) {
+            console.log(res)
+          })*/
         }
       }
     }

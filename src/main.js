@@ -17,7 +17,6 @@ axios.defaults.baseURL = 'http://localhost:8099/imis'
 axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
 Vue.config.productionTip = false
 
-/* eslint-disable no-new */
 new Vue({
   el: '#app',
   router,
