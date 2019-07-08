@@ -11,19 +11,19 @@
 
 <script>
     export default {
-        name: "login",
-        data(){
-          return{
-            username:'',
-            password:''
-          }
-        },
+      name: "login",
+      data(){
+        return{
+          username:'',
+          password:''
+        }
+      },
       methods:{
         login: function () {
           const data={'username':this.username,'password':this.password};
           this.axios({
             method:'post',
-            url:'/testController/hello',
+            url:'/testController/postTest',
             data:this.$qs.stringify(data),
             /*headers:{
               'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'
