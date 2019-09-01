@@ -5,6 +5,9 @@
     <el-input class="search_input" v-model="searchIn" placeholder="查询内容"></el-input>
     <el-button type="primary" icon="el-icon-search" @click="searchInfo">搜索</el-button>
     <el-divider content-position="left">列表</el-divider>
+    <el-button size="mini" @click="batchDelete()" type="danger" icon="el-icon-delete" class="operate_button">批量物理删除</el-button>
+    <el-button size="mini" @click="deleteInfo()" type="danger" icon="el-icon-delete" class="operate_button">物理删除</el-button>
+    <el-button size="mini" @click="removeInfo()" type="warning" icon="el-icon-delete" class="operate_button">逻辑删除</el-button>
     <el-table :data="tableData" width="100%" tooltip-effect="dark" border @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="50"></el-table-column>
       <el-table-column prop="username" label="姓名" ></el-table-column>
@@ -48,7 +51,7 @@
           password:'',
           sex:'1',
           openstate:'true',
-          birthday:'',
+          birthday:null,
           msg:'',
           searchIn:'',
           //列表数据
@@ -66,23 +69,23 @@
             method:'post',
             url:'/testController/add',
             data:this.$qs.stringify({username:this.name,password:this.password,
-              sex:this.sex,openstate:this.openstate,birthday: this.birthday})
+              sex:this.sex,openstate:this.openstate,birthday: this.birthday},{skipNulls:true})
           }).then(rex=> {
-            this.$message({message:rex.data.operateMessage,type:rex.data.operateSuccess==true?'success':'error'});
+            this.$message({message:rex.data.operateMessage,type:rex.data.operateSuccess===true?'success':'error'});
           }).catch(rex=> {
             this.$message(rex.date);
           })
         },
+        //查询
         searchInfo:function () {
           this.axios({
             method: 'get',
             url:'/testController/list',
             params:{username:this.searchIn}
           }).then(rex=>{
-            console.log(rex);
             this.tableData=rex.data;
             this.total=rex.data.length;
-            if(rex.data.length==0){
+            if(rex.data.length===0){
               this.$message({
                 message:'未查询到数据',
                 type:'warning'
@@ -94,9 +97,11 @@
         handleSelectionChange:function(val){
           this.multipleSelection = val;
         },
+        //修改
         handleEidt:function(index,row){
           console.log(index);
         },
+        //查看
         handleView:function(index,row){
           console.log(row)
         },
@@ -119,6 +124,58 @@
           }else{
             return '关闭';
           }
+        },
+        //批量物理删除
+        batchDelete:function () {
+            if(this.multipleSelection.length===0){
+              this.$message({
+                message:'未选中要删除的数据',
+                type:'warning'
+              });
+            }else{
+              let ids = []
+              this.multipleSelection.map((item)=>{
+                ids.push(item.id)
+              })
+              this.axios({
+                method:'post',
+                url:'/testController/batchDelete',
+                data:{ids:ids}
+              }).then(rex=>{
+                this.$message({message:rex.data.operateMessage,type:rex.data.operateSuccess===true?'success':'error'});
+                if(rex.data.operateSuccess===true){
+                  this.searchInfo();
+                }
+              })
+            }
+        },
+        //物理删除
+        deleteInfo:function(){
+          if(this.multipleSelection.length===1){
+            let id;
+            this.multipleSelection.map((item)=>{
+              id=item.id
+            })
+            this.axios({
+              method:"post",
+              url:'/testController/delete',
+              data:this.$qs.stringify({id:id})
+            }).then(rex=>{
+              this.$message({message:rex.data.operateMessage,type:rex.data.operateSuccess===true?'success':'error'});
+              if(rex.data.operateSuccess===true){
+                this.searchInfo();
+              }
+            });
+          }else{
+            this.$message({
+              message:'需对一条数据进行删除',
+              type:'warning'
+            });
+          }
+        },
+        //逻辑删除
+        removeInfo:function (){
+
         }
       }
     }
@@ -135,5 +192,9 @@
     width: 300px;
     height: 100%;
     margin: 10px auto;
+  }
+  .operate_button{
+    margin: 0 5px 5px 5px;
+    float: left;
   }
 </style>
