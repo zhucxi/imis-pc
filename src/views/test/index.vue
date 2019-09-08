@@ -8,7 +8,7 @@
     <el-button size="mini" @click="batchDelete()" type="danger" icon="el-icon-delete" class="operate_button">批量物理删除</el-button>
     <el-button size="mini" @click="deleteInfo()" type="danger" icon="el-icon-delete" class="operate_button">物理删除</el-button>
     <el-button size="mini" @click="removeInfo()" type="warning" icon="el-icon-delete" class="operate_button">逻辑删除</el-button>
-    <el-table :data="tableData" width="100%" tooltip-effect="dark" border @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" element-loading-text="拼命加载中" :data="tableData" width="100%" tooltip-effect="dark" border @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="50"></el-table-column>
       <el-table-column prop="username" label="姓名" ></el-table-column>
       <el-table-column prop="birthday" label="生日" ></el-table-column>
@@ -25,7 +25,7 @@
                    @current-change="handleCurrentChange"
                    :current-page="currentPage"
                    :page-sizes="[10,20,50,100]"
-                   :page-size="10"
+                   :page-size="pageSize"
                    layout="total,sizes,prev,pager,next,jumper"
                    :total="total">
     </el-pagination>
@@ -39,6 +39,18 @@
       <el-date-picker v-model="birthday" format="yyyy-MM-dd" value-format="yyyy-MM-dd" type="date" placeholder="选择日期"></el-date-picker>
     </div>
     <el-button class="test_input" type="success" round @click="submit()" >提交信息</el-button>
+    <el-dialog title="查看" :visible.sync="viewDialog" width="100%" fullscreen center>
+      <!--<el-table :data="viewData">
+        <el-table-column property="name" label="账号"></el-table-column>
+        <el-table-column property="password" label="密码"></el-table-column>
+        <el-table-column property="id" label="ID"></el-table-column>
+      </el-table>-->
+      <el-input v-model="viewData.name"></el-input>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="viewDialog = false">取消</el-button>
+        <el-button type="primary" @click="viewDialog = false">确定</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -60,7 +72,18 @@
           multipleSelection:[],
           //列表当前页
           currentPage:1,
-          total:0
+          //数据条数
+          pageSize :10,
+          //总条数
+          total:0,
+          loading:false,
+          //查看dialog
+          viewDialog:false,
+          viewData:{
+            name: '',
+            password:'',
+            id:''
+          }
         }
       },
       methods:{
@@ -78,14 +101,17 @@
         },
         //查询
         searchInfo:function () {
+          this.loading = true;
           this.axios({
             method: 'get',
-            url:'/testController/list',
-            params:{username:this.searchIn}
+            url:'/testController/pageQuery',
+            params:{currentPage:this.currentPage,pageSize:this.pageSize,username:this.searchIn}
           }).then(rex=>{
-            this.tableData=rex.data;
-            this.total=rex.data.length;
-            if(rex.data.length===0){
+            this.loading = false;
+            this.tableData=rex.data.records;
+            this.currentPage = rex.data.current;
+            this.total=rex.data.total;
+            if(rex.data.total===0){
               this.$message({
                 message:'未查询到数据',
                 type:'warning'
@@ -103,13 +129,24 @@
         },
         //查看
         handleView:function(index,row){
-          console.log(row)
+          this.axios({
+            method:'get',
+            url:'/testController/getById',
+            params: {id:row.id}
+          }).then(rex=>{
+            this.viewData.name = rex.data.username;
+            this.viewData.password = rex.data.password;
+            this.viewData.id = rex.data.id;
+            this.viewDialog = true
+          })
         },
         handleSizeChange:function(val){
-
+          this.pageSize = val;
+          this.searchInfo();
         },
         handleCurrentChange:function(val){
-
+          this.currentPage = val;
+          this.searchInfo();
         },
         formatterSex:function (row,column,cellValue) {
           if(cellValue=='1'){
@@ -144,6 +181,9 @@
               }).then(rex=>{
                 this.$message({message:rex.data.operateMessage,type:rex.data.operateSuccess===true?'success':'error'});
                 if(rex.data.operateSuccess===true){
+                  if(this.multipleSelection.length==this.tableData.length&&this.currentPage!=1){
+                    this.currentPage = this.currentPage-1;
+                  }
                   this.searchInfo();
                 }
               })
@@ -163,6 +203,9 @@
             }).then(rex=>{
               this.$message({message:rex.data.operateMessage,type:rex.data.operateSuccess===true?'success':'error'});
               if(rex.data.operateSuccess===true){
+                if(this.multipleSelection.length==this.tableData.length&&this.currentPage!=1){
+                  this.currentPage = this.currentPage-1;
+                }
                 this.searchInfo();
               }
             });
@@ -175,7 +218,30 @@
         },
         //逻辑删除
         removeInfo:function (){
-
+          if(this.multipleSelection.length===1){
+            let id;
+            this.multipleSelection.map((item)=>{
+              id=item.id
+            });
+            this.axios({
+              method:'post',
+              url:'/testController/remove',
+              data:this.$qs.stringify({id:id})
+            }).then(rex=>{
+              this.$message({message:rex.data.operateMessage,type:rex.data.operateSuccess===true?'success':'error'});
+              if(rex.data.operateSuccess===true){
+                if(this.multipleSelection.length==this.tableData.length&&this.currentPage!=1){
+                  this.currentPage = this.currentPage-1;
+                }
+                this.searchInfo();
+              }
+            });
+          }else {
+            this.$message({
+              message:'需对一条数据进行删除',
+              type:'warning'
+            });
+          }
         }
       }
     }
